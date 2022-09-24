@@ -1,0 +1,64 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
+
+class IndexController extends Controller
+{
+    // show register form
+	public function show() {
+		// get contents from search
+		$flights = Storage::disk('local')->get('flights.json');
+
+		// decode JSON file into an object
+		$flights = json_decode($flights, false);
+
+		// make variable of each flight
+		$flights = $flights->getAirFlightDepartures->results->result->itinerary_data;
+
+		// get data from API search
+			// flight 1
+				// prep variables
+				$itinerary_0 = $flights->itinerary_0;
+				$originAirportCode = $itinerary_0->slice_data->slice_0->departure->airport->code;
+				$originAirportName = $itinerary_0->slice_data->slice_0->departure->airport->name;
+				$destinationAirportCode = $itinerary_0->slice_data->slice_0->arrival->airport->code;
+				$destinationAirportName = $itinerary_0->slice_data->slice_0->arrival->airport->name;
+			// ready variables for insertion
+			$userId = 1336662;
+			$origin = "(" . $originAirportCode . ") " . $originAirportName;
+			$destination = "(" . $destinationAirportCode . ") " . $destinationAirportName;
+			$departureDate = $itinerary_0->slice_data->slice_0->departure->datetime->date_display;
+			$departureTime = $itinerary_0->slice_data->slice_0->departure->datetime->time_12h;
+			$arrivalDate = $itinerary_0->slice_data->slice_0->arrival->datetime->date_display;
+			$arrivalTime = $itinerary_0->slice_data->slice_0->arrival->datetime->time_12h;
+			$connections = $itinerary_0->slice_data->slice_0->info->connection_count;
+			$mainAirline = $itinerary_0->slice_data->slice_0->airline->name;
+			$airlineCount = $itinerary_0->slice_data->slice_0->airline->airline_count;
+			$tripDuration = $itinerary_0->slice_data->slice_0->info->duration;
+			$price = $itinerary_0->price_details->display_total_fare;
+
+		// insert into database
+		DB::table('flights')->insert([
+			'user_id' => $userId,
+			'origin' => $origin,
+			'destination' => $destination,
+			'departure_date' => $departureDate,
+			'departure_time' => $departureTime,
+			'arrival_date' => $arrivalDate,
+			'arrival_time' => $arrivalTime,
+			'number_of_connections' => $connections,
+			'main_airline' => $mainAirline,
+			'number_of_airlines' => $airlineCount,
+			'trip_duration' => $tripDuration,
+			'price' => $price
+		]);
+
+		// display results
+		return view('home')
+			->with('flights', $flights);
+	}
+}
